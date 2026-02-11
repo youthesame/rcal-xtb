@@ -183,3 +183,4 @@ uv sync
 - xTB GitHub: <https://github.com/grimme-lab/xtb>
 - xTB documentation: <https://xtb-docs.readthedocs.io/>
 - uv documentation: <https://docs.astral.sh/uv/>
+- R. Flores <i>et al., Theor. Chem. Acc.</i> <b>2025</b>, 144, 37. DOI: [10.1007/s00214-025-03187-4](https://doi.org/10.1007/s00214-025-03187-4)
