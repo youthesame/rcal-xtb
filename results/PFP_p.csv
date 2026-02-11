@@ -1,0 +1,2 @@
+molecule,lambda_p_ev,cation_relax_ev,neutral_relax_ev,xtb_total_wall_time_sec,status,error
+PFP.xyz,0.706429494751,-40.427165145870,41.133594640621,2112.799000,ok,

@@ -1,0 +1,2 @@
+molecule,lambda_p_ev,cation_relax_ev,neutral_relax_ev,xtb_total_wall_time_sec,status,error
+TL85.xyz,0.639046987853,-3.080755970161,3.719802958014,379.625000,ok,

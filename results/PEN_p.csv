@@ -1,0 +1,2 @@
+molecule,lambda_p_ev,cation_relax_ev,neutral_relax_ev,xtb_total_wall_time_sec,status,error
+PEN.xyz,0.449637375868,-0.077863224832,0.527500600701,650.416000,ok,

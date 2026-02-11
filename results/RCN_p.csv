@@ -1,0 +1,2 @@
+molecule,lambda_p_ev,cation_relax_ev,neutral_relax_ev,xtb_total_wall_time_sec,status,error
+RCN.xyz,0.869685135068,-8.863738564158,9.733423699226,236.285000,ok,

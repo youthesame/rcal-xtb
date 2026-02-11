@@ -1,0 +1,2 @@
+molecule,lambda_p_ev,cation_relax_ev,neutral_relax_ev,xtb_total_wall_time_sec,status,error
+RBH2.xyz,1.057877152378,-7.050940636822,8.108817789200,214.224000,ok,

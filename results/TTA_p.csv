@@ -1,0 +1,2 @@
+molecule,lambda_p_ev,cation_relax_ev,neutral_relax_ev,xtb_total_wall_time_sec,status,error
+TTA.xyz,1.158716504333,2.520696729676,-1.361980225343,508.499000,ok,
