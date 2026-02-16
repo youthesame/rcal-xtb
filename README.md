@@ -178,9 +178,41 @@ uv sync
 .venv/bin/pytest -q
 ```
 
+## Benchmark: Comparison with Literature
+
+The following tables compare reorganization energies computed by `rcal-xtb`
+(GFN2-xTB / `--opt tight` / strict 4-point) with literature values from
+R. Flores *et al.*, *Theor. Chem. Acc.* **2025**, 144, 37.
+([DOI: 10.1007/s00214-025-03187-4](https://doi.org/10.1007/s00214-025-03187-4)).
+
+### Experimental cation reorganization energies λ+ vs GFN2-xTB λ_p (meV)
+
+Note: Experimental values are λ+ (cation relaxation component only), while
+GFN2-xTB λ_p is the total reorganization energy (λ+ + λ0).
+
+| Molecule | Exp. λ+ (meV) | GFN2-xTB λ_p (meV) |
+| -------- | ------------: | ------------------: |
+| AN3      |          69.7 |              1045.8 |
+| TTA      |          58.8 |              1158.7 |
+| PEN      |    49.6 ; 44  |               449.6 |
+| PFP      |   124 ; 112   |               706.4 |
+| TL85     |           720 |               639.0 |
+
+### Theoretical total reorganization energy λ vs GFN2-xTB λ_p (meV)
+
+| Molecule | QD-NEVPT2/cc-pVTZ | OO-RI-SCS-MP2/cc-pVTZ | IP-EOM-CCSD/cc-pVDZ | GFN2-xTB |
+| -------- | ----------------: | ---------------------: | ------------------: | -------: |
+| TL85     |             781.8 |                  690.5 |                   — |    639.0 |
+| PhNMe₂   |             346.5 |                  348.9 |                   — |    785.7 |
+| PhCOH    |             325.6 |                  233.9 |                   — |   1337.6 |
+| RBH₂     |             524.3 |                  560.6 |                 440 |   1057.9 |
+| RCOH     |             558.7 |                  568.0 |                 450 |    903.1 |
+| RCN      |             534.6 |                  544.0 |                 420 |    869.7 |
+
 ## References
 
+- R. Flores *et al.*, *Theor. Chem. Acc.* **2025**, 144, 37.
+  [DOI: 10.1007/s00214-025-03187-4](https://doi.org/10.1007/s00214-025-03187-4)
 - xTB GitHub: <https://github.com/grimme-lab/xtb>
 - xTB documentation: <https://xtb-docs.readthedocs.io/>
 - uv documentation: <https://docs.astral.sh/uv/>
-- R. Flores <i>et al., Theor. Chem. Acc.</i> <b>2025</b>, 144, 37. DOI: [10.1007/s00214-025-03187-4](https://doi.org/10.1007/s00214-025-03187-4)
