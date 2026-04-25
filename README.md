@@ -240,5 +240,6 @@ computed λ_p is the total reorganization energy (λ+ + λ0).
 - R. Flores *et al.*, *Theor. Chem. Acc.* **2025**, 144, 37.
   [DOI: 10.1007/s00214-025-03187-4](https://doi.org/10.1007/s00214-025-03187-4)
 - xTB GitHub: <https://github.com/grimme-lab/xtb>
+- g-xTB GitHub: <https://github.com/grimme-lab/g-xtb>
 - xTB documentation: <https://xtb-docs.readthedocs.io/>
 - uv documentation: <https://docs.astral.sh/uv/>
