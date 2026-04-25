@@ -6,6 +6,7 @@
 
 - Runs xTB via Python `subprocess`
 - Uses `GFN2-xTB` and `--opt tight`
+- Supports g-xTB via a modified `xtb` binary with `--gxtb`
 - Computes strict 4-point `lambda_p` and `lambda_n`
 - Writes results to CSV (eV)
 - Accepts one XYZ input per run with a simple `--input` option
@@ -17,12 +18,15 @@
 - Python `>=3.10`
 - [uv](https://docs.astral.sh/uv/)
 - **xTB installed separately** (this repository does not bundle xTB)
+- **g-xTB installed separately** if using `--engine gxtb`
 
 Install xTB using the official project resources:
 
 - xTB GitHub repository: <https://github.com/grimme-lab/xtb>
 
 This README assumes `xtb` is already available in your `PATH`.
+For g-xTB, this project expects the g-xTB environment to provide a modified
+`xtb` binary that accepts `--gxtb`.
 
 ## Installation (dev/local)
 
@@ -80,9 +84,22 @@ uv run rcal-xtb --help
 
 ```bash
 uv run rcal-xtb \
+  --engine gfn2 \
   --mode p \
   --input "mols/AN3.xyz" \
   --output-csv "results/lambda_p_ev.csv"
+```
+
+Run with g-xTB:
+
+```bash
+uv run rcal-xtb \
+  --engine gxtb \
+  --mode p \
+  --input "mols/AN3.xyz" \
+  --output-csv "results/gxtb/AN3_p.csv" \
+  --keep-workdir \
+  --work-root "output/gxtb/AN3"
 ```
 
 ## Keeping xTB logs and intermediate files
@@ -104,9 +121,10 @@ This keeps files under `output/AN3/<generated-workdir>/...`, including per-step 
 
 ## CLI options
 
+- `--engine`: xTB engine (`gfn2` or `gxtb`, default: `gfn2`)
 - `--mode`: Reorganization mode (`p` or `n`, default: `p`)
 - `--input`: Path to a single input XYZ file (required)
-- `--output-csv`: Output CSV path (default: `results/lambda_p_ev.csv` for mode `p`, `results/lambda_n_ev.csv` for mode `n`)
+- `--output-csv`: Output CSV path (default: `results/lambda_p_ev.csv` / `results/lambda_n_ev.csv` for `gfn2`, `results/gxtb/lambda_p_ev.csv` / `results/gxtb/lambda_n_ev.csv` for `gxtb`)
 - `--keep-workdir`: Keep per-molecule temporary work directories
 - `--work-root`: Optional root directory for temporary work directories
 - `--xtb-maxcycle`: Optional xTB optimization max cycles (`--cycles INT`) for geometry optimization steps
@@ -116,6 +134,7 @@ This keeps files under `output/AN3/<generated-workdir>/...`, including per-step 
 Mode `p` CSV columns:
 
 - `molecule`
+- `engine`
 - `lambda_p_ev`
 - `cation_relax_ev`
 - `neutral_relax_ev`
@@ -126,6 +145,7 @@ Mode `p` CSV columns:
 Mode `n` CSV columns:
 
 - `molecule`
+- `engine`
 - `lambda_n_ev`
 - `anion_relax_ev`
 - `neutral_relax_ev`
@@ -181,33 +201,39 @@ uv sync
 ## Benchmark: Comparison with Literature
 
 The following tables compare reorganization energies computed by `rcal-xtb`
-(GFN2-xTB / `--opt tight` / strict 4-point) with literature values from
+(GFN2-xTB and g-xTB / `--opt tight` / strict 4-point) with literature values from
 R. Flores *et al.*, *Theor. Chem. Acc.* **2025**, 144, 37.
 ([DOI: 10.1007/s00214-025-03187-4](https://doi.org/10.1007/s00214-025-03187-4)).
 
-### Experimental cation reorganization energies λ+ vs GFN2-xTB λ_p (meV)
+Detailed computed results are available in:
+
+- [results/benchmark_gfn2_gxtb.csv](results/benchmark_gfn2_gxtb.csv)
+- [results/gxtb/](results/gxtb/)
+- [results/gfn2/](results/gfn2/)
+
+### Experimental cation reorganization energies λ+ vs computed λ_p (meV)
 
 Note: Experimental values are λ+ (cation relaxation component only), while
-GFN2-xTB λ_p is the total reorganization energy (λ+ + λ0).
+computed λ_p is the total reorganization energy (λ+ + λ0).
 
-| Molecule | Exp. λ+ (meV) | GFN2-xTB λ_p (meV) |
-| -------- | ------------: | ------------------: |
-| AN3      |          69.7 |              1045.8 |
-| TTA      |          58.8 |              1158.7 |
-| PEN      |    49.6 ; 44  |               449.6 |
-| PFP      |   124 ; 112   |               706.4 |
-| TL85     |           720 |               639.0 |
+| Molecule | Exp. λ+ (meV) | GFN2-xTB λ_p (meV) | g-xTB λ_p (meV) |
+| -------- | ------------: | ------------------: | ---------------: |
+| AN3      |          69.7 |              1045.8 |            205.0 |
+| TTA      |          58.8 |              1158.7 |            193.5 |
+| PEN      |    49.6 ; 44  |               449.6 |            188.2 |
+| PFP      |   124 ; 112   |               706.4 |            416.7 |
+| TL85     |           720 |               639.0 |            457.5 |
 
-### Theoretical total reorganization energy λ vs GFN2-xTB λ_p (meV)
+### Theoretical total reorganization energy λ vs computed λ_p (meV)
 
-| Molecule | QD-NEVPT2/cc-pVTZ | OO-RI-SCS-MP2/cc-pVTZ | IP-EOM-CCSD/cc-pVDZ | GFN2-xTB |
-| -------- | ----------------: | ---------------------: | ------------------: | -------: |
-| TL85     |             781.8 |                  690.5 |                   — |    639.0 |
-| PhNMe₂   |             346.5 |                  348.9 |                   — |    785.7 |
-| PhCOH    |             325.6 |                  233.9 |                   — |   1337.6 |
-| RBH₂     |             524.3 |                  560.6 |                 440 |   1057.9 |
-| RCOH     |             558.7 |                  568.0 |                 450 |    903.1 |
-| RCN      |             534.6 |                  544.0 |                 420 |    869.7 |
+| Molecule | QD-NEVPT2/cc-pVTZ | OO-RI-SCS-MP2/cc-pVTZ | IP-EOM-CCSD/cc-pVDZ | GFN2-xTB | g-xTB |
+| -------- | ----------------: | ---------------------: | ------------------: | -------: | ----: |
+| TL85     |             781.8 |                  690.5 |                   — |    639.0 | 457.5 |
+| PhNMe₂   |             346.5 |                  348.9 |                   — |    785.7 | 402.3 |
+| PhCOH    |             325.6 |                  233.9 |                   — |   1337.6 | 175.6 |
+| RBH₂     |             524.3 |                  560.6 |                 440 |   1057.9 | 658.4 |
+| RCOH     |             558.7 |                  568.0 |                 450 |    903.1 | 676.4 |
+| RCN      |             534.6 |                  544.0 |                 420 |    869.7 | 664.2 |
 
 ## References
 

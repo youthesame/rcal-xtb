@@ -1,0 +1,2 @@
+molecule,engine,lambda_p_ev,cation_relax_ev,neutral_relax_ev,xtb_total_wall_time_sec,status,error
+AN3.xyz,gfn2,0.590534371852,-4.178845009983,4.769379381836,42.753000,ok,

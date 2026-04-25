@@ -16,11 +16,12 @@ def test_cli_writes_failed_row_for_single_input_failure_p_mode(monkeypatch, tmp_
     _write_dummy_xyz(xyz_path)
     output_csv = tmp_path / "results" / "out.csv"
 
-    monkeypatch.setattr(cli.xtb_runner, "ensure_xtb_available", lambda: None)
+    monkeypatch.setattr(cli.xtb_runner, "ensure_xtb_available", lambda engine="gfn2": None)
 
     def fake_calculate_lambda_p_for_xyz(
         xyz_path: Path,
         *,
+        engine: str = "gfn2",
         work_root: Path | None = None,
         keep_workdir: bool = False,
     ) -> PMoleculeResult:
@@ -49,6 +50,7 @@ def test_cli_writes_failed_row_for_single_input_failure_p_mode(monkeypatch, tmp_
     assert len(rows) == 1
     row = rows[0]
     assert row["molecule"] == "bad.xyz"
+    assert row["engine"] == "gfn2"
     assert row["status"] == "failed"
     assert row["xtb_total_wall_time_sec"] == "3.500000"
     assert "simulated xtb failure" in row["error"]
@@ -59,11 +61,12 @@ def test_cli_writes_ok_row_for_single_input_success(monkeypatch, tmp_path: Path)
     _write_dummy_xyz(xyz_path)
     output_csv = tmp_path / "results" / "out.csv"
 
-    monkeypatch.setattr(cli.xtb_runner, "ensure_xtb_available", lambda: None)
+    monkeypatch.setattr(cli.xtb_runner, "ensure_xtb_available", lambda engine="gfn2": None)
 
     def fake_calculate_lambda_p_for_xyz(
         xyz_path: Path,
         *,
+        engine: str = "gfn2",
         work_root: Path | None = None,
         keep_workdir: bool = False,
     ) -> PMoleculeResult:
@@ -96,6 +99,7 @@ def test_cli_writes_ok_row_for_single_input_success(monkeypatch, tmp_path: Path)
     assert len(rows) == 1
     row = rows[0]
     assert row["molecule"] == "good.xyz"
+    assert row["engine"] == "gfn2"
     assert row["status"] == "ok"
     assert row["lambda_p_ev"] != ""
     assert row["xtb_total_wall_time_sec"] == "9.876543"
@@ -106,11 +110,12 @@ def test_cli_writes_failed_row_for_single_input_failure_n_mode(monkeypatch, tmp_
     _write_dummy_xyz(xyz_path)
     output_csv = tmp_path / "results" / "out_n.csv"
 
-    monkeypatch.setattr(cli.xtb_runner, "ensure_xtb_available", lambda: None)
+    monkeypatch.setattr(cli.xtb_runner, "ensure_xtb_available", lambda engine="gfn2": None)
 
     def fake_calculate_lambda_n_for_xyz(
         xyz_path: Path,
         *,
+        engine: str = "gfn2",
         work_root: Path | None = None,
         keep_workdir: bool = False,
     ) -> NMoleculeResult:
@@ -141,6 +146,7 @@ def test_cli_writes_failed_row_for_single_input_failure_n_mode(monkeypatch, tmp_
     assert len(rows) == 1
     row = rows[0]
     assert row["molecule"] == "bad_n.xyz"
+    assert row["engine"] == "gfn2"
     assert row["status"] == "failed"
     assert row["lambda_n_ev"] == ""
     assert row["anion_relax_ev"] == ""
@@ -153,11 +159,12 @@ def test_cli_writes_ok_row_for_single_input_success_n_mode(monkeypatch, tmp_path
     _write_dummy_xyz(xyz_path)
     output_csv = tmp_path / "results" / "out_n.csv"
 
-    monkeypatch.setattr(cli.xtb_runner, "ensure_xtb_available", lambda: None)
+    monkeypatch.setattr(cli.xtb_runner, "ensure_xtb_available", lambda engine="gfn2": None)
 
     def fake_calculate_lambda_n_for_xyz(
         xyz_path: Path,
         *,
+        engine: str = "gfn2",
         work_root: Path | None = None,
         keep_workdir: bool = False,
     ) -> NMoleculeResult:
@@ -192,6 +199,103 @@ def test_cli_writes_ok_row_for_single_input_success_n_mode(monkeypatch, tmp_path
     assert len(rows) == 1
     row = rows[0]
     assert row["molecule"] == "good_n.xyz"
+    assert row["engine"] == "gfn2"
     assert row["status"] == "ok"
     assert row["lambda_n_ev"] != ""
     assert row["xtb_total_wall_time_sec"] == "4.500000"
+
+
+def test_cli_passes_gxtb_engine_to_runner(monkeypatch, tmp_path: Path) -> None:
+    xyz_path = tmp_path / "good_gxtb.xyz"
+    _write_dummy_xyz(xyz_path)
+    output_csv = tmp_path / "results" / "out_gxtb.csv"
+    seen: dict[str, str] = {}
+
+    def fake_ensure_xtb_available(engine: str = "gfn2") -> None:
+        seen["ensure_engine"] = engine
+
+    monkeypatch.setattr(cli.xtb_runner, "ensure_xtb_available", fake_ensure_xtb_available)
+
+    def fake_calculate_lambda_p_for_xyz(
+        xyz_path: Path,
+        *,
+        engine: str = "gfn2",
+        work_root: Path | None = None,
+        keep_workdir: bool = False,
+    ) -> PMoleculeResult:
+        seen["calc_engine"] = engine
+        return PMoleculeResult(
+            molecule=xyz_path.name,
+            lambda_p_ev=0.5,
+            cation_relax_ev=0.2,
+            neutral_relax_ev=0.3,
+            xtb_total_wall_time_sec=1.25,
+            workdir=None,
+        )
+
+    monkeypatch.setattr(
+        cli.xtb_runner,
+        "calculate_lambda_p_for_xyz",
+        fake_calculate_lambda_p_for_xyz,
+    )
+
+    exit_code = cli.run(
+        [
+            "--engine",
+            "gxtb",
+            "--input",
+            str(xyz_path),
+            "--output-csv",
+            str(output_csv),
+        ]
+    )
+
+    assert exit_code == 0
+    assert seen == {"ensure_engine": "gxtb", "calc_engine": "gxtb"}
+    row = list(csv.DictReader(output_csv.open(encoding="utf-8")))[0]
+    assert row["engine"] == "gxtb"
+
+
+def test_cli_default_output_path_separates_gxtb_engine(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.chdir(tmp_path)
+    xyz_path = tmp_path / "good_gxtb.xyz"
+    _write_dummy_xyz(xyz_path)
+
+    monkeypatch.setattr(cli.xtb_runner, "ensure_xtb_available", lambda engine="gfn2": None)
+
+    def fake_calculate_lambda_p_for_xyz(
+        xyz_path: Path,
+        *,
+        engine: str = "gfn2",
+        work_root: Path | None = None,
+        keep_workdir: bool = False,
+    ) -> PMoleculeResult:
+        return PMoleculeResult(
+            molecule=xyz_path.name,
+            lambda_p_ev=0.5,
+            cation_relax_ev=0.2,
+            neutral_relax_ev=0.3,
+            xtb_total_wall_time_sec=1.25,
+            workdir=None,
+        )
+
+    monkeypatch.setattr(
+        cli.xtb_runner,
+        "calculate_lambda_p_for_xyz",
+        fake_calculate_lambda_p_for_xyz,
+    )
+
+    exit_code = cli.run(
+        [
+            "--engine",
+            "gxtb",
+            "--input",
+            str(xyz_path),
+        ]
+    )
+
+    assert exit_code == 0
+    output_csv = tmp_path / "results" / "gxtb" / "lambda_p_ev.csv"
+    assert output_csv.exists()
+    row = list(csv.DictReader(output_csv.open(encoding="utf-8")))[0]
+    assert row["engine"] == "gxtb"

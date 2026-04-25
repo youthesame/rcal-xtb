@@ -12,6 +12,7 @@ from rcal_xtb import xtb_runner
 
 CSV_FIELDS_P = [
     "molecule",
+    "engine",
     "lambda_p_ev",
     "cation_relax_ev",
     "neutral_relax_ev",
@@ -21,6 +22,7 @@ CSV_FIELDS_P = [
 ]
 CSV_FIELDS_N = [
     "molecule",
+    "engine",
     "lambda_n_ev",
     "anion_relax_ev",
     "neutral_relax_ev",
@@ -40,6 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         description=("Calculate strict 4-point P/N-type reorganization energy for a single XYZ file with xTB")
+    )
+    parser.add_argument(
+        "--engine",
+        choices=["gfn2", "gxtb"],
+        default="gfn2",
+        help="xTB engine: gfn2 (stock xTB with --gfn 2) or gxtb (modified xTB with --gxtb)",
     )
     parser.add_argument(
         "--mode",
@@ -122,9 +130,13 @@ def run(argv: Sequence[str] | None = None) -> int:
         print(f"Input must be an .xyz file: {input_path}", file=sys.stderr)
         return 1
 
-    output_csv = Path(
-        args.output_csv or ("results/lambda_p_ev.csv" if args.mode == "p" else "results/lambda_n_ev.csv")
-    )
+    default_output_name = "lambda_p_ev.csv" if args.mode == "p" else "lambda_n_ev.csv"
+    if args.output_csv:
+        output_csv = Path(args.output_csv)
+    elif args.engine == "gxtb":
+        output_csv = Path("results") / "gxtb" / default_output_name
+    else:
+        output_csv = Path("results") / default_output_name
     output_csv.parent.mkdir(parents=True, exist_ok=True)
 
     work_root: Path | None = None
@@ -136,7 +148,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         return 1
 
     try:
-        xtb_runner.ensure_xtb_available()
+        xtb_runner.ensure_xtb_available(args.engine)
     except Exception as exc:  # pragma: no cover - exercised by runtime only
         print(f"xTB availability check failed: {exc}", file=sys.stderr)
         return 1
@@ -145,6 +157,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         fieldnames = CSV_FIELDS_P
         try:
             calc_kwargs = {
+                "engine": args.engine,
                 "work_root": work_root,
                 "keep_workdir": args.keep_workdir,
             }
@@ -156,6 +169,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             )
             row = {
                 "molecule": result.molecule,
+                "engine": args.engine,
                 "lambda_p_ev": _format_value(result.lambda_p_ev),
                 "cation_relax_ev": _format_value(result.cation_relax_ev),
                 "neutral_relax_ev": _format_value(result.neutral_relax_ev),
@@ -173,6 +187,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             elapsed_wall_time_sec = getattr(exc, "elapsed_wall_time_sec", None)
             row = {
                 "molecule": input_path.name,
+                "engine": args.engine,
                 "lambda_p_ev": "",
                 "cation_relax_ev": "",
                 "neutral_relax_ev": "",
@@ -186,6 +201,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         fieldnames = CSV_FIELDS_N
         try:
             calc_kwargs = {
+                "engine": args.engine,
                 "work_root": work_root,
                 "keep_workdir": args.keep_workdir,
             }
@@ -197,6 +213,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             )
             row = {
                 "molecule": result.molecule,
+                "engine": args.engine,
                 "lambda_n_ev": _format_value(result.lambda_n_ev),
                 "anion_relax_ev": _format_value(result.anion_relax_ev),
                 "neutral_relax_ev": _format_value(result.neutral_relax_ev),
@@ -214,6 +231,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             elapsed_wall_time_sec = getattr(exc, "elapsed_wall_time_sec", None)
             row = {
                 "molecule": input_path.name,
+                "engine": args.engine,
                 "lambda_n_ev": "",
                 "anion_relax_ev": "",
                 "neutral_relax_ev": "",

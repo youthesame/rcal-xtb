@@ -9,7 +9,7 @@ import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Literal
 
 from rcal_xtb.energy_parser import (
     extract_total_energy_eh_from_text,
@@ -17,6 +17,8 @@ from rcal_xtb.energy_parser import (
 )
 from rcal_xtb.reorg_n import NEnergyTermsEh, compute_n_reorganization_energy
 from rcal_xtb.reorg_p import PEnergyTermsEh, compute_p_reorganization_energy
+
+XtbEngine = Literal["gfn2", "gxtb"]
 
 
 @dataclass(frozen=True)
@@ -142,15 +144,35 @@ class XtbCommandError(RuntimeError):
         self.elapsed_wall_time_sec = elapsed_wall_time_sec
 
 
-def ensure_xtb_available() -> None:
+def _module_load_command(engine: XtbEngine) -> str:
+    if engine == "gxtb":
+        return "module load g-xtb"
+    return "module load xtb"
+
+
+def _method_args(engine: XtbEngine) -> list[str]:
+    if engine == "gxtb":
+        return ["--gxtb"]
+    return ["--gfn", "2"]
+
+
+def ensure_xtb_available(engine: XtbEngine = "gfn2") -> None:
     """Verify that xTB can be loaded and executed in the shell environment.
+
+    Parameters
+    ----------
+    engine : {"gfn2", "gxtb"}, default="gfn2"
+        Engine environment to verify. ``"gxtb"`` uses ``module load g-xtb``
+        and still expects the executable name to be ``xtb``.
 
     Raises
     ------
     XtbCommandError
         If ``module load xtb`` or basic xTB commands fail.
     """
-    command = "module load xtb && which xtb && xtb --version"
+    command = f"{_module_load_command(engine)} && which xtb && xtb --version"
+    if engine == "gxtb":
+        command = f"{command} && xtb --help"
     proc = subprocess.run(
         ["bash", "-lc", command],
         capture_output=True,
@@ -161,12 +183,18 @@ def ensure_xtb_available() -> None:
         raise XtbCommandError(
             f"xTB is not available. Failed command: {command}\nstdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
         )
+    if engine == "gxtb" and "--gxtb" not in f"{proc.stdout}\n{proc.stderr}":
+        raise XtbCommandError(
+            f"g-xTB support was not found in xtb --help. Failed command: {command}\n"
+            f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
 
 
 def _run_xtb_step(
     *,
     input_xyz: Path,
     step_dir: Path,
+    engine: XtbEngine,
     chrg: int,
     uhf: int,
     optimize: bool,
@@ -180,6 +208,8 @@ def _run_xtb_step(
         Input geometry file.
     step_dir : Path
         Per-step working directory where logs and outputs are written.
+    engine : {"gfn2", "gxtb"}
+        xTB engine command style to use.
     chrg : int
         Charge passed to xTB as ``--chrg``.
     uhf : int
@@ -210,10 +240,11 @@ def _run_xtb_step(
         args.extend(["--opt", "tight"])
         if xtb_maxcycle is not None:
             args.extend(["--cycles", str(xtb_maxcycle)])
-    args.extend(["--gfn", "2", "--chrg", str(chrg), "--uhf", str(uhf)])
+    args.extend(_method_args(engine))
+    args.extend(["--chrg", str(chrg), "--uhf", str(uhf)])
 
     xtb_cmd = " ".join(shlex.quote(arg) for arg in args)
-    full_cmd = f"module load xtb && {xtb_cmd}"
+    full_cmd = f"{_module_load_command(engine)} && {xtb_cmd}"
 
     proc = subprocess.run(
         ["bash", "-lc", full_cmd],
@@ -320,6 +351,7 @@ def _run_four_point_terms(
     *,
     input_xyz: Path,
     molecule_workdir: Path,
+    engine: XtbEngine,
     state_label: str,
     state_charge: int,
     state_uhf: int,
@@ -334,6 +366,8 @@ def _run_four_point_terms(
         Input geometry used as the starting point.
     molecule_workdir : Path
         Root work directory for all four xTB steps.
+    engine : {"gfn2", "gxtb"}
+        xTB engine command style to use.
     state_label : str
         Human-readable state label for directory naming (for example,
         ``"cation"`` or ``"anion"``).
@@ -365,6 +399,7 @@ def _run_four_point_terms(
             step_result = _run_xtb_step(
                 input_xyz=input_xyz,
                 step_dir=step_dir,
+                engine=engine,
                 chrg=chrg,
                 uhf=uhf,
                 optimize=optimize,
@@ -450,6 +485,7 @@ def _run_four_point_terms(
 def calculate_lambda_p_for_xyz(
     xyz_path: Path,
     *,
+    engine: XtbEngine = "gfn2",
     work_root: Path | None = None,
     keep_workdir: bool = False,
     xtb_maxcycle: int | None = None,
@@ -460,6 +496,8 @@ def calculate_lambda_p_for_xyz(
     ----------
     xyz_path : Path
         Path to the input ``.xyz`` file.
+    engine : {"gfn2", "gxtb"}, default="gfn2"
+        xTB engine command style to use.
     work_root : Path | None, optional
         Optional parent directory for temporary work directories.
     keep_workdir : bool, default=False
@@ -490,6 +528,7 @@ def calculate_lambda_p_for_xyz(
         terms = _run_four_point_terms(
             input_xyz=xyz_path,
             molecule_workdir=molecule_workdir,
+            engine=engine,
             state_label="cation",
             state_charge=1,
             state_uhf=1,
@@ -518,6 +557,7 @@ def calculate_lambda_p_for_xyz(
 def calculate_lambda_n_for_xyz(
     xyz_path: Path,
     *,
+    engine: XtbEngine = "gfn2",
     work_root: Path | None = None,
     keep_workdir: bool = False,
     xtb_maxcycle: int | None = None,
@@ -528,6 +568,8 @@ def calculate_lambda_n_for_xyz(
     ----------
     xyz_path : Path
         Path to the input ``.xyz`` file.
+    engine : {"gfn2", "gxtb"}, default="gfn2"
+        xTB engine command style to use.
     work_root : Path | None, optional
         Optional parent directory for temporary work directories.
     keep_workdir : bool, default=False
@@ -558,6 +600,7 @@ def calculate_lambda_n_for_xyz(
         terms = _run_four_point_terms(
             input_xyz=xyz_path,
             molecule_workdir=molecule_workdir,
+            engine=engine,
             state_label="anion",
             state_charge=-1,
             state_uhf=1,

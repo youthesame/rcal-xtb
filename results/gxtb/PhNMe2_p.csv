@@ -1,0 +1,2 @@
+molecule,engine,lambda_p_ev,cation_relax_ev,neutral_relax_ev,xtb_total_wall_time_sec,status,error
+PhNMe2.xyz,gxtb,0.402326933224,0.254923215705,0.147403717518,5.856000,ok,

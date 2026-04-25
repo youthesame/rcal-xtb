@@ -1,0 +1,2 @@
+molecule,engine,lambda_p_ev,cation_relax_ev,neutral_relax_ev,xtb_total_wall_time_sec,status,error
+RCOH.xyz,gxtb,0.676356411913,0.391842113336,0.284514298577,1.620000,ok,

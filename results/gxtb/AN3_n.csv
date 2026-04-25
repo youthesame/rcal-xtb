@@ -1,0 +1,2 @@
+molecule,engine,lambda_n_ev,anion_relax_ev,neutral_relax_ev,xtb_total_wall_time_sec,status,error
+AN3.xyz,gxtb,0.308478403514,0.157116855311,0.151361548203,1.678000,ok,

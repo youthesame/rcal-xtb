@@ -67,12 +67,18 @@ N型（electron）再配列エネルギー:
 ├── mols/
 │   └── *.xyz
 ├── output/
-│   └── <molecule>/<generated-workdir>/...
+│   ├── <molecule>/<generated-workdir>/...
+│   ├── gfn2/<molecule>/<generated-workdir>/...
+│   └── gxtb/<molecule>/<generated-workdir>/...
 ├── pyproject.toml
 ├── results/
+│   ├── gfn2/
+│   │   └── *_p.csv
+│   ├── gxtb/
+│   │   └── *_p.csv, AN3_n.csv
 │   ├── _tmp_reorg_runs/
 │   │   └── *_p.csv, AN3_n.csv
-│   └── ... .csv
+│   └── ... .csv, benchmark_gfn2_gxtb.csv
 ├── src/
 │   └── rcal_xtb/
 │       ├── __init__.py
